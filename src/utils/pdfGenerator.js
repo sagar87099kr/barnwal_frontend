@@ -85,8 +85,20 @@ export const generatePDF = (billData, action = 'print') => {
   if (action === 'download' || action === 'both') {
     try {
       const downloadDoc = createDoc(false);
-      // Save/download a copy
-      downloadDoc.save(`${billData.billNumber}.pdf`);
+      // Generate secure local Blob
+      const blob = downloadDoc.output('blob');
+      const url = URL.createObjectURL(blob);
+      
+      // Force native download using temporary anchor element
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${billData.billNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Error downloading PDF:", err);
     }
