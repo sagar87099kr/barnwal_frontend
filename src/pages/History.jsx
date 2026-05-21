@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, Calendar, Printer } from 'lucide-react';
+import { Search, FileText, Calendar, Printer, Download } from 'lucide-react';
 import api from '../api';
 import { generatePDF } from '../utils/pdfGenerator';
 
@@ -88,14 +88,24 @@ const History = () => {
                       ₹{bill.totalAmount.toLocaleString()}
                     </td>
                     <td className="p-4 text-center">
-                      <button 
-                        onClick={() => generatePDF(bill)}
-                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1 font-semibold text-sm shadow-sm"
-                        title="Print Invoice"
-                      >
-                        <Printer size={16} />
-                        Print
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => generatePDF(bill, 'print')}
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1 font-semibold text-sm shadow-sm"
+                          title="Print Invoice"
+                        >
+                          <Printer size={16} />
+                          Print
+                        </button>
+                        <button 
+                          onClick={() => generatePDF(bill, 'download')}
+                          className="bg-green-50 hover:bg-green-100 text-green-600 px-3 py-1.5 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1 font-semibold text-sm shadow-sm"
+                          title="Download PDF Invoice"
+                        >
+                          <Download size={16} />
+                          Download
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

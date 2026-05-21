@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Trash2, Printer, Save, CheckCircle } from 'lucide-react';
+import { Search, Plus, Trash2, Printer, Save, CheckCircle, Download } from 'lucide-react';
 import api from '../api';
 import { generatePDF } from '../utils/pdfGenerator';
 
@@ -119,7 +119,7 @@ const Billing = () => {
       
       setLatestBill(res.data);
       setSuccessMsg(`Bill ${res.data.billNumber} created successfully!`);
-      generatePDF(res.data);
+      generatePDF(res.data, 'both');
       
       // Reset
       setCart([]);
@@ -142,19 +142,28 @@ const Billing = () => {
       <h2 className="text-3xl font-bold text-gray-800 mb-6">Create New Bill</h2>
 
       {successMsg && (
-        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
+        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-xl flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 shadow-sm">
           <div className="flex items-center">
             <CheckCircle className="mr-3 text-green-600 flex-shrink-0" />
             <span className="text-lg font-medium">{successMsg}</span>
           </div>
           {latestBill && (
-            <button 
-              onClick={() => generatePDF(latestBill)} 
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl flex items-center transition-colors shadow-md text-sm cursor-pointer whitespace-nowrap self-start sm:self-auto"
-            >
-              <Printer className="mr-2" size={16} />
-              Reprint Invoice
-            </button>
+            <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+              <button 
+                onClick={() => generatePDF(latestBill, 'print')} 
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl flex items-center transition-colors shadow-md text-sm cursor-pointer whitespace-nowrap"
+              >
+                <Printer className="mr-2" size={16} />
+                Reprint Invoice
+              </button>
+              <button 
+                onClick={() => generatePDF(latestBill, 'download')} 
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl flex items-center transition-colors shadow-md text-sm cursor-pointer whitespace-nowrap"
+              >
+                <Download className="mr-2" size={16} />
+                Download PDF
+              </button>
+            </div>
           )}
         </div>
       )}

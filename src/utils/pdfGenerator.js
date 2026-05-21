@@ -2,12 +2,12 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 /**
- * Generates an elegant PDF invoice, automatically launches the print dialog in a new tab,
- * and downloads a copy for the user.
+ * Generates an elegant PDF invoice, with options to trigger printing or downloading.
  * 
  * @param {Object} billData The bill invoice details
+ * @param {string} action The action to perform: 'print', 'download', or 'both'
  */
-export const generatePDF = (billData) => {
+export const generatePDF = (billData, action = 'print') => {
   const doc = new jsPDF();
   
   // Header
@@ -61,17 +61,21 @@ export const generatePDF = (billData) => {
   doc.setFont("helvetica", "normal");
   doc.text("Thank you for your business!", 105, finalY + 40, null, null, "center");
   
-  try {
-    // Auto-Print: configures print action
-    doc.autoPrint();
-    const blobUrl = doc.output('bloburl');
-    if (blobUrl) {
-      window.open(blobUrl, '_blank');
+  if (action === 'print' || action === 'both') {
+    try {
+      // Auto-Print: configures print action
+      doc.autoPrint();
+      const blobUrl = doc.output('bloburl');
+      if (blobUrl) {
+        window.open(blobUrl, '_blank');
+      }
+    } catch (err) {
+      console.error("Error launching print dialog:", err);
     }
-  } catch (err) {
-    console.error("Error launching print dialog:", err);
   }
   
-  // Also save/download a copy
-  doc.save(`${billData.billNumber}.pdf`);
+  if (action === 'download' || action === 'both') {
+    // Save/download a copy
+    doc.save(`${billData.billNumber}.pdf`);
+  }
 };
