@@ -1,5 +1,7 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTableDefault, { autoTable as autoTableNamed } from 'jspdf-autotable';
+
+const autoTableFunc = autoTableDefault || autoTableNamed;
 
 /**
  * Generates an elegant PDF invoice, with options to trigger printing or downloading.
@@ -42,16 +44,46 @@ export const generatePDF = (billData, action = 'print') => {
       tableRows.push(rowData);
     });
 
-    doc.autoTable({
+    const options = {
       head: [tableColumn],
       body: tableRows,
       startY: 62,
       theme: 'grid',
       headStyles: { fillColor: [30, 58, 138], textColor: 255 },
       styles: { fontSize: 10 }
-    });
+    };
 
-    const finalY = doc.lastAutoTable.finalY || 62;
+    // Use extremely robust conditional autoTable calling
+    if (typeof autoTableFunc === 'function') {
+      try {
+        autoTableFunc(doc, options);
+      } catch (autoTableErr) {
+        console.warn("Calling autoTable standalone failed, trying fallback prototype method...", autoTableErr);
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable(options);
+        } else {
+          throw autoTableErr;
+        }
+      }
+    } else if (typeof doc.autoTable === 'function') {
+      doc.autoTable(options);
+    } else {
+      console.warn("jspdf-autotable is not loaded or registered correctly. Drawing fallback table...");
+      let currentY = 62;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Items Summary:", 14, currentY);
+      currentY += 8;
+      doc.setFont("helvetica", "normal");
+      billData.products.forEach((item, index) => {
+        const desc = item.company ? `${item.name} (${item.company})` : item.name;
+        doc.text(`${index + 1}. ${desc} x ${item.quantity} - Rs. ${item.subtotal.toFixed(2)}`, 14, currentY);
+        currentY += 6;
+      });
+      doc.lastAutoTable = { finalY: currentY };
+    }
+
+    const finalY = (doc.lastAutoTable && doc.lastAutoTable.finalY) || 62;
     
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
@@ -76,31 +108,45 @@ export const generatePDF = (billData, action = 'print') => {
       const blobUrl = printDoc.output('bloburl');
       if (blobUrl) {
         window.open(blobUrl, '_blank');
+      } else {
+        throw new Error("Unable to generate PDF blob URL for printing.");
       }
     } catch (err) {
       console.error("Error launching print dialog:", err);
+      alert("Failed to open print preview!\n\nError Details: " + err.message + "\n\nPlease ensure popups are allowed for this site.");
     }
   }
   
   if (action === 'download' || action === 'both') {
     try {
       const downloadDoc = createDoc(false);
-      // Generate secure local Blob
-      const blob = downloadDoc.output('blob');
-      const url = URL.createObjectURL(blob);
       
-      // Force native download using temporary anchor element
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${billData.billNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Strategy 1: Attempt native HTML Blob URL download (extremely robust, bypasses internal jsPDF save issues in many viewports)
+      try {
+        const blob = downloadDoc.output('blob');
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${billData.billNumber}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup after short delay to let browser process download trigger
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 100);
+      } catch (blobErr) {
+        console.warn("Native HTML Blob URL download failed, trying standard doc.save fallback...", blobErr);
+        
+        // Strategy 2: Attempt standard jsPDF save (most compatible fallback)
+        downloadDoc.save(`${billData.billNumber}.pdf`);
+      }
     } catch (err) {
-      console.error("Error downloading PDF:", err);
+      console.error("All PDF download methods failed:", err);
+      alert("PDF Download Failed!\n\nError Details:\n" + err.message + "\n\nIf this persists, please open your browser Developer Console (Press F12 / Cmd+Option+I) to see the full stack trace.");
     }
   }
 };
+
