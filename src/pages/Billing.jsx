@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, Trash2, Printer, Save, CheckCircle } from 'lucide-react';
 import api from '../api';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { generatePDF } from '../utils/pdfGenerator';
 
 const Billing = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [cart, setCart] = useState([]);
   const [customerName, setCustomerName] = useState('');
+  const [latestBill, setLatestBill] = useState(null);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const searchRef = useRef(null);
@@ -99,64 +99,6 @@ const Billing = () => {
 
   const grandTotal = cart.reduce((total, item) => total + item.subtotal, 0);
 
-  const generatePDF = (billData) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFontSize(22);
-    doc.text("BARWNAL TRADERS", 105, 20, null, null, "center");
-    
-    doc.setFontSize(12);
-    doc.text("Hardware & Building Materials", 105, 28, null, null, "center");
-    doc.text("Phone: +91 1234567890", 105, 34, null, null, "center");
-    
-    // Bill Details
-    doc.line(14, 40, 196, 40);
-    doc.setFontSize(11);
-    doc.text(`Bill No: ${billData.billNumber}`, 14, 47);
-    doc.text(`Date: ${new Date(billData.date || billData.createdAt).toLocaleString()}`, 120, 47);
-    doc.text(`Customer: ${billData.customerName || "Walk-in Customer"}`, 14, 53);
-    doc.line(14, 57, 196, 57);
-    
-    // Table
-    const tableColumn = ["S.No", "Item Description", "Qty", "Price (Rs)", "Amount (Rs)"];
-    const tableRows = [];
-
-    billData.products.forEach((item, index) => {
-      const rowData = [
-        index + 1,
-        item.company ? `${item.name} (${item.company})` : item.name,
-        item.quantity,
-        item.price.toFixed(2),
-        item.subtotal.toFixed(2)
-      ];
-      tableRows.push(rowData);
-    });
-
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 62,
-      theme: 'grid',
-      headStyles: { fillColor: [30, 58, 138], textColor: 255 },
-      styles: { fontSize: 10 }
-    });
-
-    const finalY = doc.lastAutoTable.finalY || 62;
-    
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total: Rs. ${billData.totalAmount.toFixed(2)}`, 130, finalY + 15);
-    
-    // Footer
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Thank you for your business!", 105, finalY + 40, null, null, "center");
-    
-    // Save
-    doc.save(`${billData.billNumber}.pdf`);
-  };
-
   const handleGenerateBill = async () => {
     if (cart.length === 0) return alert("Cart is empty!");
     setLoading(true);
@@ -175,13 +117,17 @@ const Billing = () => {
         totalAmount: grandTotal
       });
       
+      setLatestBill(res.data);
       setSuccessMsg(`Bill ${res.data.billNumber} created successfully!`);
       generatePDF(res.data);
       
       // Reset
       setCart([]);
       setCustomerName('');
-      setTimeout(() => setSuccessMsg(''), 5000);
+      setTimeout(() => {
+        setSuccessMsg('');
+        setLatestBill(null);
+      }, 7000);
       
     } catch (error) {
       console.error("Error creating bill", error);
@@ -196,9 +142,20 @@ const Billing = () => {
       <h2 className="text-3xl font-bold text-gray-800 mb-6">Create New Bill</h2>
 
       {successMsg && (
-        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-xl flex items-center shadow-sm">
-          <CheckCircle className="mr-3" />
-          <span className="text-lg font-medium">{successMsg}</span>
+        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-sm">
+          <div className="flex items-center">
+            <CheckCircle className="mr-3 text-green-600 flex-shrink-0" />
+            <span className="text-lg font-medium">{successMsg}</span>
+          </div>
+          {latestBill && (
+            <button 
+              onClick={() => generatePDF(latestBill)} 
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-xl flex items-center transition-colors shadow-md text-sm cursor-pointer whitespace-nowrap self-start sm:self-auto"
+            >
+              <Printer className="mr-2" size={16} />
+              Reprint Invoice
+            </button>
+          )}
         </div>
       )}
 

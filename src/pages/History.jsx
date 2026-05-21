@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, FileText, Calendar } from 'lucide-react';
+import { Search, FileText, Calendar, Printer } from 'lucide-react';
 import api from '../api';
+import { generatePDF } from '../utils/pdfGenerator';
 
 const History = () => {
   const [bills, setBills] = useState([]);
@@ -57,6 +58,7 @@ const History = () => {
                   <th className="p-4 font-semibold">Date & Time</th>
                   <th className="p-4 font-semibold">Items Sold</th>
                   <th className="p-4 font-semibold text-right">Total Amount</th>
+                  <th className="p-4 font-semibold text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -85,11 +87,21 @@ const History = () => {
                     <td className="p-4 text-right font-bold text-blue-800 text-xl">
                       ₹{bill.totalAmount.toLocaleString()}
                     </td>
+                    <td className="p-4 text-center">
+                      <button 
+                        onClick={() => generatePDF(bill)}
+                        className="bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-xl transition-colors cursor-pointer inline-flex items-center gap-1 font-semibold text-sm shadow-sm"
+                        title="Print Invoice"
+                      >
+                        <Printer size={16} />
+                        Print
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-gray-500 text-lg">No bills found.</td>
+                    <td colSpan="6" className="p-8 text-center text-gray-500 text-lg">No bills found.</td>
                   </tr>
                 )}
               </tbody>
