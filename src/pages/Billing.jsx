@@ -8,6 +8,7 @@ const Billing = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [cart, setCart] = useState([]);
+  const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const searchRef = useRef(null);
@@ -66,8 +67,8 @@ const Billing = () => {
         name: product.name,
         company: product.company,
         price: product.sellingPrice,
-        quantity: 1,
-        subtotal: product.sellingPrice,
+        quantity: 0,
+        subtotal: 0,
         maxQty: product.quantity,
         unit: product.unit
       }]);
@@ -78,7 +79,7 @@ const Billing = () => {
 
   const updateQuantity = (id, qty) => {
     const parsedQty = parseInt(qty);
-    if (isNaN(parsedQty) || parsedQty <= 0) return;
+    if (isNaN(parsedQty) || parsedQty < 0) return;
     
     setCart(cart.map(item => {
       if (item.product === id) {
@@ -112,8 +113,10 @@ const Billing = () => {
     // Bill Details
     doc.line(14, 40, 196, 40);
     doc.setFontSize(11);
-    doc.text(`Bill No: ${billData.billNumber}`, 14, 48);
-    doc.text(`Date: ${new Date(billData.date).toLocaleString()}`, 120, 48);
+    doc.text(`Bill No: ${billData.billNumber}`, 14, 47);
+    doc.text(`Date: ${new Date(billData.date || billData.createdAt).toLocaleString()}`, 120, 47);
+    doc.text(`Customer: ${billData.customerName || "Walk-in Customer"}`, 14, 53);
+    doc.line(14, 57, 196, 57);
     
     // Table
     const tableColumn = ["S.No", "Item Description", "Qty", "Price (Rs)", "Amount (Rs)"];
@@ -133,13 +136,13 @@ const Billing = () => {
     doc.autoTable({
       head: [tableColumn],
       body: tableRows,
-      startY: 55,
+      startY: 62,
       theme: 'grid',
       headStyles: { fillColor: [30, 58, 138], textColor: 255 },
       styles: { fontSize: 10 }
     });
 
-    const finalY = doc.lastAutoTable.finalY || 55;
+    const finalY = doc.lastAutoTable.finalY || 62;
     
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
@@ -160,6 +163,7 @@ const Billing = () => {
     
     try {
       const res = await api.post('/bills', {
+        customerName,
         products: cart.map(item => ({
           product: item.product,
           name: item.name,
@@ -176,6 +180,7 @@ const Billing = () => {
       
       // Reset
       setCart([]);
+      setCustomerName('');
       setTimeout(() => setSuccessMsg(''), 5000);
       
     } catch (error) {
@@ -243,8 +248,17 @@ const Billing = () => {
         {/* Right Side - Cart */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full min-h-[500px]">
-            <div className="p-6 border-b border-gray-100 bg-gray-50 rounded-t-2xl">
+            <div className="p-6 border-b border-gray-100 bg-gray-50 rounded-t-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-2xl font-bold text-gray-800">Current Bill</h3>
+              <div className="w-full sm:w-64">
+                <input 
+                  type="text" 
+                  placeholder="Customer Name (Optional)" 
+                  className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none bg-white text-base shadow-sm"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
+              </div>
             </div>
             
             <div className="flex-1 p-6 overflow-y-auto">
@@ -276,7 +290,7 @@ const Billing = () => {
                           <div className="flex items-center justify-center">
                             <input 
                               type="number" 
-                              min="1" 
+                              min="0" 
                               max={item.maxQty}
                               value={item.quantity} 
                               onChange={(e) => updateQuantity(item.product, e.target.value)}

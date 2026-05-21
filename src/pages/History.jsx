@@ -23,7 +23,8 @@ const History = () => {
   };
 
   const filteredBills = bills.filter(bill => 
-    bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bill.customerName && bill.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -35,7 +36,7 @@ const History = () => {
           <Search className="absolute left-4 top-3 text-gray-400" size={24} />
           <input 
             type="text" 
-            placeholder="Search by Bill Number..." 
+            placeholder="Search by Bill Number or Customer Name..." 
             className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -52,6 +53,7 @@ const History = () => {
               <thead>
                 <tr className="bg-gray-50 text-gray-700 text-lg border-b">
                   <th className="p-4 font-semibold">Bill No.</th>
+                  <th className="p-4 font-semibold">Customer</th>
                   <th className="p-4 font-semibold">Date & Time</th>
                   <th className="p-4 font-semibold">Items Sold</th>
                   <th className="p-4 font-semibold text-right">Total Amount</th>
@@ -65,6 +67,9 @@ const History = () => {
                         <FileText className="text-blue-500 mr-2" size={20} />
                         <span className="font-bold text-gray-900">{bill.billNumber}</span>
                       </div>
+                    </td>
+                    <td className="p-4 text-gray-900 font-medium">
+                      {bill.customerName || <span className="text-gray-400 italic">Walk-in</span>}
                     </td>
                     <td className="p-4 text-gray-600">
                       <div className="flex items-center">
@@ -84,7 +89,7 @@ const History = () => {
                 ))}
                 {filteredBills.length === 0 && (
                   <tr>
-                    <td colSpan="4" className="p-8 text-center text-gray-500 text-lg">No bills found.</td>
+                    <td colSpan="5" className="p-8 text-center text-gray-500 text-lg">No bills found.</td>
                   </tr>
                 )}
               </tbody>
