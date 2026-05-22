@@ -10,7 +10,7 @@ const Products = () => {
   const [expandedCompanies, setExpandedCompanies] = useState({});
   
   const initialFormState = {
-    name: '', company: '', purchasePrice: '', sellingPrice: '', quantity: '', unit: 'piece'
+    name: '', company: '', printPrice: '', purchaseDiscount: '', sellingDiscount: '', quantity: '', unit: 'piece'
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -70,8 +70,21 @@ const Products = () => {
   };
 
   const handleEdit = (product) => {
+    const printPrice = product.printPrice !== undefined ? product.printPrice : product.sellingPrice;
+    const purchaseDiscount = product.purchaseDiscount !== undefined ? product.purchaseDiscount : 
+      (product.sellingPrice ? Math.round((1 - product.purchasePrice / product.sellingPrice) * 100) : 0);
+    const sellingDiscount = product.sellingDiscount !== undefined ? product.sellingDiscount : 0;
+
     setEditingProduct(product);
-    setFormData(product);
+    setFormData({
+      name: product.name,
+      company: product.company,
+      printPrice: printPrice,
+      purchaseDiscount: purchaseDiscount,
+      sellingDiscount: sellingDiscount,
+      quantity: product.quantity,
+      unit: product.unit
+    });
     setIsModalOpen(true);
   };
 
@@ -144,32 +157,59 @@ const Products = () => {
                     <tr className="bg-white text-gray-700 text-lg border-b">
                       <th className="p-4 font-semibold">Name</th>
                       <th className="p-4 font-semibold">Stock</th>
+                      <th className="p-4 font-semibold">Print Price</th>
                       <th className="p-4 font-semibold">Buy Price</th>
                       <th className="p-4 font-semibold">Sell Price</th>
                       <th className="p-4 font-semibold text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {groupedProducts[company].map((product) => (
-                      <tr key={product._id} className="border-b hover:bg-gray-50 text-lg">
-                        <td className="p-4 font-medium text-gray-900">{product.name}</td>
-                        <td className="p-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${product.quantity < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                            {product.quantity} {product.unit}
-                          </span>
-                        </td>
-                        <td className="p-4 font-medium text-gray-600">₹{product.purchasePrice}</td>
-                        <td className="p-4 font-bold text-gray-900">₹{product.sellingPrice}</td>
-                        <td className="p-4 flex justify-center space-x-4">
-                          <button onClick={() => handleEdit(product)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg">
-                            <Edit2 size={24} />
-                          </button>
-                          <button onClick={() => handleDelete(product._id)} className="text-red-600 hover:bg-red-50 p-2 rounded-lg">
-                            <Trash2 size={24} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {groupedProducts[company].map((product) => {
+                      const printPrice = product.printPrice !== undefined ? product.printPrice : product.sellingPrice;
+                      const purchaseDiscount = product.purchaseDiscount !== undefined ? product.purchaseDiscount : 
+                        (product.sellingPrice ? Math.round((1 - product.purchasePrice / product.sellingPrice) * 100) : 0);
+                      const sellingDiscount = product.sellingDiscount !== undefined ? product.sellingDiscount : 0;
+
+                      return (
+                        <tr key={product._id} className="border-b hover:bg-gray-50 text-lg">
+                          <td className="p-4 font-medium text-gray-900">{product.name}</td>
+                          <td className="p-4">
+                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${product.quantity < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {product.quantity} {product.unit}
+                            </span>
+                          </td>
+                          <td className="p-4 font-medium text-gray-600">₹{printPrice}</td>
+                          <td className="p-4 font-medium text-gray-600">
+                            <div className="flex items-center gap-1.5">
+                              <span>₹{product.purchasePrice.toFixed(2)}</span>
+                              {purchaseDiscount > 0 && (
+                                <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-xs font-bold border border-green-200">
+                                  -{purchaseDiscount}%
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 font-bold text-gray-900">
+                            <div className="flex items-center gap-1.5">
+                              <span>₹{product.sellingPrice.toFixed(2)}</span>
+                              {sellingDiscount > 0 && (
+                                <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-bold border border-blue-200">
+                                  -{sellingDiscount}%
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4 flex justify-center space-x-4">
+                            <button onClick={() => handleEdit(product)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg">
+                              <Edit2 size={24} />
+                            </button>
+                            <button onClick={() => handleDelete(product._id)} className="text-red-600 hover:bg-red-50 p-2 rounded-lg">
+                              <Trash2 size={24} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -212,17 +252,75 @@ const Products = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Purchase Price (₹)</label>
-                  <input type="number" name="purchasePrice" required min="0" step="0.01" value={formData.purchasePrice} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" />
+                  <label className="block text-gray-700 font-medium mb-2">Print Price (₹)</label>
+                  <input 
+                    type="number" 
+                    name="printPrice" 
+                    required 
+                    min="0" 
+                    step="0.01" 
+                    value={formData.printPrice} 
+                    onChange={handleInputChange} 
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" 
+                  />
                 </div>
                 <div>
-                  <label className="block text-gray-700 font-medium mb-2">Selling Price (₹)</label>
-                  <input type="number" name="sellingPrice" required min="0" step="0.01" value={formData.sellingPrice} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" />
-                </div>
-                <div className="md:col-span-2">
                   <label className="block text-gray-700 font-medium mb-2">Opening Stock Quantity</label>
-                  <input type="number" name="quantity" required min="0" value={formData.quantity} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" />
+                  <input 
+                    type="number" 
+                    name="quantity" 
+                    required 
+                    min="0" 
+                    value={formData.quantity} 
+                    onChange={handleInputChange} 
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" 
+                  />
                 </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Purchase Discount (%)</label>
+                  <input 
+                    type="number" 
+                    name="purchaseDiscount" 
+                    min="0" 
+                    max="100" 
+                    step="0.01" 
+                    value={formData.purchaseDiscount} 
+                    onChange={handleInputChange} 
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" 
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Sell Discount (%)</label>
+                  <input 
+                    type="number" 
+                    name="sellingDiscount" 
+                    min="0" 
+                    max="100" 
+                    step="0.01" 
+                    value={formData.sellingDiscount} 
+                    onChange={handleInputChange} 
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-lg" 
+                    placeholder="0"
+                  />
+                </div>
+
+                {formData.printPrice && (
+                  <div className="md:col-span-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-5 flex justify-around shadow-inner mt-2">
+                    <div className="text-center">
+                      <span className="text-sm font-semibold text-gray-500 block mb-1">Calculated Buy Price</span>
+                      <span className="text-2xl font-extrabold text-gray-800">
+                        ₹{(parseFloat(formData.printPrice || 0) * (1 - parseFloat(formData.purchaseDiscount || 0) / 100)).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="text-center border-l border-blue-200 pl-8">
+                      <span className="text-sm font-semibold text-blue-600 block mb-1">Calculated Sell Price</span>
+                      <span className="text-2xl font-extrabold text-blue-700">
+                        ₹{(parseFloat(formData.printPrice || 0) * (1 - parseFloat(formData.sellingDiscount || 0) / 100)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div className="pt-6">
